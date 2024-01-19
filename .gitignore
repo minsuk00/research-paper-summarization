@@ -1,2 +1,4 @@
 paper_pdf
 *.pdf
+apikey.py
+__pycache__
