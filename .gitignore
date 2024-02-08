@@ -4,5 +4,6 @@ apikey.py
 __pycache__
 
 /vector_db
+/vector_db/qdrant/lib/llm.py
 /.vscode
 /text

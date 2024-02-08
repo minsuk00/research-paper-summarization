@@ -3,7 +3,13 @@ from langchain.document_loaders import PyPDFLoader
 import os
 
 
-def extractPdfToFile(doi: str, filename: str = "document"):
+def extract_pdf_to_txt(doi: str, filename: str = "document"):
+    """extract pdf data to text and store in .txt file
+
+    Args:
+        doi (str): doi of target paper
+        filename (str, optional): name of output file (.txt added automatically). Defaults to "document".
+    """
     print("extracting pdf data...")
 
     # get pdf data from openalex
