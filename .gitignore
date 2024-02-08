@@ -5,3 +5,4 @@ __pycache__
 
 /vector_db
 /.vscode
+/text
