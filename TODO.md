@@ -6,6 +6,7 @@
 - prompt engineering
 - Evaluation metrics 조사 & 구현
 - Preprocessing 
+    - How to parse paper into sections..?
     - integrate reference text or not
     - which sections to choose?
     - extract images?
@@ -35,10 +36,10 @@
 - if local llm, how?
 - offline meeting / work?
 - feedback (compare outputs e.g. different preprocessing / model / etc)
+- readme.md
 
 # 다음 할것:
 - 회의 준비
 - generate summary api 구현
-- evaluation api 구현 및 점수 이해
 - Open Source 모델 조사 / OpenAI, AWS 가격 비교
 - 논문 preprocessing 조사

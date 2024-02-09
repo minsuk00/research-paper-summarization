@@ -1,44 +1,18 @@
-from blanc import BlancHelp, BlancTune
-import time
 from typing import Literal, Union
-
-# =====Blanc=====
-
-# =====Estime=====
-
-# =====Shannon Score=====
-
-# =====G-eval=====
-from openai import OpenAI
-import pandas as pd
 import os
-import geval_prompt as P
-
-# import boto3
 
 
-def g_eval(
-    document: str,
-    summaries: Union[list[str], str],
-    mode: Literal["file", "text"] = "file",
-):
-    """implementation of G-eval framework. can take in both file or text of doc/summary(s)
-
-    Args:
-        document (str): filename or actual text of document (file should be stored in /text dir. exclude .txt)
-        summary (Union[list[str], str]): 1 or list of files/actual text.
-        mode (Literal[&quot;file&quot;, &quot;text&quot;], optional): whether to parse file or the actual text. Defaults to "file".
-    """
+def handle_input(document, summaries, mode):
+    text_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
+        "text",
+    )
+    doc_path = os.path.join(
+        text_dir,
+        document + ".txt",
+    )
     if mode == "file":
         # parse document
-        text_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.realpath(__file__))),
-            "text",
-        )
-        doc_path = os.path.join(
-            text_dir,
-            document + ".txt",
-        )
         with open(doc_path, "r") as file:
             document = file.read()
 
@@ -56,8 +30,109 @@ def g_eval(
                 # store summary to list
                 summaries = [file.read()]
     elif mode == "text":
+        # account for when only summary is text input. try to get document from file
+        if len(document) < 20:
+            try:
+                print("Trying to read document from file...")
+                with open(doc_path, "r") as file:
+                    document = file.read()
+                print("success!")
+            except:
+                print("Failed to read document from file. using document as text input")
         if isinstance(summaries, str):
             summaries = [summaries]
+
+    return document, summaries
+
+
+# =====Blanc=====
+from blanc import BlancHelp
+
+
+# typically 0~0.3 (0: useless, 0.3: useful)
+def blanc(
+    document: str,
+    summaries: Union[list[str], str],
+    mode: Literal["file", "text"] = "file",
+):
+    document, summaries = handle_input(document, summaries, mode)
+    # print(document)
+    blanc_help = BlancHelp()
+    print("=====Blanc Score=====")
+    # scores = blanc_help.eval_pairs(document, summaries)
+    for i, summ in enumerate(summaries):
+        score = blanc_help.eval_once(document, summ)
+        print(f"Summary {i}: ", score)
+    # for i, score in enumerate(scores):
+    #     print(f"Summary {i}: ", score)
+
+
+# =====Estime=====
+from blanc import Estime
+
+
+# focus on accuracy. number of alarms
+def estime(
+    document: str,
+    summaries: Union[list[str], str],
+    mode: Literal["file", "text"] = "file",
+):
+    document, summaries = handle_input(document, summaries, mode)
+
+    output = ["alarms", "alarms_adjusted", "soft", "coherence"]
+    # output = ["alarms", "soft"]
+    estimator = Estime(output=output)
+    scores = estimator.evaluate_claims(document, summaries)
+    print("=====Estime Score=====")
+    for i, *score in enumerate(scores):
+        print(f"Summary {i}:")
+        for j, crit in enumerate(output):
+            print(f"{crit}: {score[0][j]}")
+
+
+# =====Shannon Score=====
+from blanc import Shannon
+
+
+# typically 0~1. higher the better
+def shannon_score(
+    document: str,
+    summaries: Union[list[str], str],
+    mode: Literal["file", "text"] = "file",
+):
+    document, summaries = handle_input(document, summaries, mode)
+    judge = Shannon()
+    print("=====Shannon Score=====")
+    for i, summ in enumerate(summaries):
+        b, h, f, *_ = judge.go(document, summ)
+        ss = (h - b) / (f - b)
+        print(f"Summary {i}: ", ss)
+
+
+# =====G-eval=====
+from openai import OpenAI
+import pandas as pd
+import os
+import geval_prompt as P
+
+# import boto3
+
+
+def g_eval(
+    document: str,
+    summaries: Union[list[str], str],
+    mode: Literal["file", "text"] = "file",
+    verbose: bool = False,
+):
+    """implementation of G-eval framework. can take in both file or text of doc/summary(s)
+
+    Args:
+        document (str): filename or actual text of document (file should be stored in /text dir. exclude .txt)
+        summary (Union[list[str], str]): 1 or list of files/actual text.
+        mode (Literal[&quot;file&quot;, &quot;text&quot;], optional): whether to parse file or the actual text. Defaults to "file".
+        verbose (bool): log intermediate results
+    """
+    document, summaries = handle_input(document, summaries, mode)
     # document & summaries are stored as str | list[str]. summaries are stored in list
 
     client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
@@ -76,8 +151,10 @@ def g_eval(
         summ_dict[f"Summary {i}"] = summ
     data = {"Evaluation Type": [], "Summary Type": [], "Score": []}
 
+    print("Evaluating...")
     for eval_type, (criteria, steps) in evaluation_metrics.items():
-        print(f"evaluating {eval_type}...")
+        if verbose:
+            print(f"evaluating {eval_type}...")
         for summ_type, summary in summ_dict.items():
             data["Evaluation Type"].append(eval_type)
             data["Summary Type"].append(summ_type)
@@ -89,12 +166,14 @@ def g_eval(
             except:
                 # if result does not contain valid output
                 score_num = -1
-            print(f"{summ_type}: {score_num}")
+            if verbose:
+                print(f"{summ_type}: {score_num}")
             data["Score"].append(score_num)
 
     pivot_df = pd.DataFrame(data, index=None).pivot(
         index="Evaluation Type", columns="Summary Type", values="Score"
     )
+    print("=========================================")
     print(pivot_df)
     # styled_pivot_df = pivot_df.style.apply(highlight_max, axis=1)
     # display(styled_pivot_df)
@@ -112,6 +191,7 @@ def get_geval_score(
     )
     response = client.chat.completions.create(
         model="gpt-4-turbo-preview",
+        # model="gpt-3.5-turbo",
         messages=[{"role": "user", "content": prompt}],
         temperature=0,
         max_tokens=5,

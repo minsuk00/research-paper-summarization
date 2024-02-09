@@ -3,6 +3,7 @@ EVALUATION_PROMPT_TEMPLATE = """
 You will be given one summary written for an article. Your task is to rate the summary on one metric.
 Please make sure you read and understand these instructions very carefully. 
 Please keep this document open while reviewing, and refer to it as needed.
+Be critical when assigning score.
 
 Evaluation Criteria:
 
@@ -76,12 +77,12 @@ CONSISTENCY_SCORE_STEPS = """
 # Metric 4: Fluency
 
 FLUENCY_SCORE_CRITERIA = """
-Fluency(1-3): the quality of the summary in terms of grammar, spelling, punctuation, word choice, and sentence structure.
+Fluency(1-5): the quality of the summary in terms of grammar, spelling, punctuation, word choice, and sentence structure.
 1: Poor. The summary has many errors that make it hard to understand or sound unnatural.
-2: Fair. The summary has some errors that affect the clarity or smoothness of the text, but the main points are still comprehensible.
-3: Good. The summary has few or no errors and is easy to read and follow.
+3: Fair. The summary has some errors that affect the clarity or smoothness of the text, but the main points are still comprehensible.
+5: Good. The summary has few or no errors and is easy to read and follow.
 """
 
 FLUENCY_SCORE_STEPS = """
-Read the summary and evaluate its fluency based on the given criteria. Assign a fluency score from 1 to 3.
+Read the summary and evaluate its fluency based on the given criteria. Assign a fluency score based on the Evaluation Criteria
 """
